@@ -1,0 +1,25 @@
+{
+  "name": "time-manager",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@12.9.1",
+  "engines": {
+    "node": "^24.9.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "prisma:generate": "pnpm --filter backend prisma:generate",
+    "prisma:migrate": "pnpm --filter backend prisma:migrate",
+    "prisma:studio": "pnpm --filter backend prisma:studio",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test:cov": "turbo run test:cov"
+  },
+  "devDependencies": {
+    "turbo": "2.11.7",
+    "prettier": "3.9.9"
+  }
+}

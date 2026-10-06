@@ -1,0 +1,8 @@
+pnpm-lock.yaml
+node_modules
+.next
+dist
+.turbo
+coverage
+apps/backend/src/generated/prisma
+apps/frontend/next-env.d.ts
