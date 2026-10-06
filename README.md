@@ -13,7 +13,7 @@ Browser → Nginx → Next.js frontend
                → /api/* → NestJS REST API → Prisma → PostgreSQL
 ```
 
-Next.js uses TypeScript, App Router, `src/`, and Tailwind CSS. NestJS uses TypeScript, ESLint, Prettier, Jest, and `@nestjs/config`. Prisma belongs exclusively to the backend. Nginx preserves the `/api` prefix when proxying requests. Docker Compose provides the application network and persistent database volume; only Nginx publishes a port in the base stack.
+Next.js uses TypeScript, App Router, `src/`, and Sass/SCSS. NestJS uses TypeScript, ESLint, Prettier, Jest, and `@nestjs/config`. Prisma belongs exclusively to the backend. Nginx preserves the `/api` prefix when proxying requests. Docker Compose provides the application network and persistent database volume; only Nginx publishes a port in the base stack.
 
 ## Project structure
 
@@ -39,13 +39,12 @@ Next.js uses TypeScript, App Router, `src/`, and Tailwind CSS. NestJS uses TypeS
 │   │   └── tsconfig.json
 │   └── frontend/
 │       ├── public/.gitkeep
-│       ├── src/app/{globals.css,layout.tsx,page.tsx}
+│       ├── src/app/{globals.scss,page.module.scss,layout.tsx,page.tsx}
 │       ├── Dockerfile
 │       ├── eslint.config.mjs
 │       ├── next-env.d.ts
 │       ├── next.config.ts
 │       ├── package.json
-│       ├── postcss.config.mjs
 │       └── tsconfig.json
 ├── packages/.gitkeep
 ├── nginx/nginx.conf
@@ -81,7 +80,7 @@ Generated Prisma code (`apps/backend/src/generated/prisma/`), dependencies, and 
 | NestJS Config / CLI                      | 12.0.1 / 12.0.8             |
 | Prisma CLI / Client / PostgreSQL adapter | 7.10.0                      |
 | TypeScript                               | 6.0.2                       |
-| Tailwind CSS                             | 4.3.3                       |
+| Sass                                     | 1.105.1                     |
 | ESLint                                   | 9.39.5                      |
 | Prettier                                 | 3.9.9                       |
 | Jest / ts-jest                           | 30.5.2 / 29.4.14            |
