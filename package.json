@@ -13,6 +13,7 @@
     "test": "turbo run test",
     "prisma:generate": "pnpm --filter backend prisma:generate",
     "prisma:migrate": "pnpm --filter backend prisma:migrate",
+    "prisma:db:seed": "pnpm --filter backend exec prisma db seed",
     "prisma:studio": "pnpm --filter backend prisma:studio",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

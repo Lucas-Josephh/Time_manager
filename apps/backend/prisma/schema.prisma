@@ -26,26 +26,29 @@ model Team {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   managerId    String?
-  manager      User?      @relation(fields: [managerId], references: [id], onDelete: SetNull)
+  manager      User?      @relation("TeamManager", fields: [managerId], references: [id], onDelete: SetNull)
+  members      User[]     @relation("TeamMembers")
 
   @@index([departmentId])
   @@map("team")
 }
 
 model User {
-  id               String             @id
-  firstname        String
-  lastname         String
-  email            String
-  phone            String?
-  emailVerified    Boolean            @default(false)
-  image            String?
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  sessions         Session[]
-  accounts         Account[]
-  teamId           String?
-  team             Team?              @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  id            String    @id
+  firstname     String
+  lastname      String
+  email         String
+  phone         String?
+  isAdmin       Boolean   @default(false)
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  teamId        String?
+  team          Team?     @relation("TeamMembers", fields: [teamId], references: [id], onDelete: SetNull)
+  managedTeams  Team[]    @relation("TeamManager")
 
   @@unique([email])
   @@map("user")
