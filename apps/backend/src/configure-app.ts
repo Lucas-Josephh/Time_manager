@@ -1,8 +1,18 @@
+import { toNodeHandler } from 'better-auth/node';
+import { AuthService } from './auth/auth.service';
+import { ConfigService } from '@nestjs/config';
 import type { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 export function configureApp(app: INestApplication): void {
+  // Regroupe les routes Nest sous /api et autorise les cookies du frontend.
   app.setGlobalPrefix('api');
+  app.enableCors({
+    origin: app.get(ConfigService).getOrThrow<string>('FRONTEND_URL'),
+    credentials: true,
+  });
+  // Enregistre Better Auth avant les parseurs Nest pour préserver le flux brut.
+  app.use('/api/auth', toNodeHandler(app.get(AuthService).auth));
   app.enableShutdownHooks();
 
   // Documente les contrôleurs NestJS.

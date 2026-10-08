@@ -15,12 +15,16 @@
     "prisma:migrate": "pnpm --filter backend prisma:migrate",
     "prisma:db:seed": "pnpm --filter backend exec prisma db seed",
     "prisma:studio": "pnpm --filter backend prisma:studio",
+    "prisma:db:push": "pnpm --filter backend exec prisma migrate deploy",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test:cov": "turbo run test:cov"
   },
   "devDependencies": {
-    "turbo": "2.11.7",
-    "prettier": "3.9.9"
+    "prettier": "3.9.9",
+    "turbo": "2.11.7"
+  },
+  "dependencies": {
+    "@better-auth/i18n": "^1.7.7"
   }
 }

@@ -1,3 +1,4 @@
+import { AuthModule } from './auth/auth.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { resolve } from 'node:path';
@@ -11,6 +12,7 @@ import { PrismaModule } from './prisma/prisma.module';
       envFilePath: resolve(__dirname, '../../../.env'),
     }),
     PrismaModule,
+    AuthModule,
   ],
   controllers: [AppController],
 })
