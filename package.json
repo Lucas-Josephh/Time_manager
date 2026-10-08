@@ -7,10 +7,13 @@
     "node": "^24.9.0"
   },
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "pnpm --parallel --recursive --filter frontend --filter backend run dev",
+    "dev:database": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --wait database",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
+    "start": "docker compose up --build -d --wait",
+    "stop": "docker compose down",
     "prisma:generate": "pnpm --filter backend prisma:generate",
     "prisma:migrate": "pnpm --filter backend prisma:migrate",
     "prisma:studio": "pnpm --filter backend prisma:studio",

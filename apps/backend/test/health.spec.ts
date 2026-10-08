@@ -1,9 +1,9 @@
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
-import { AppModule } from '../src/app.module';
-import { configureApp } from '../src/configure-app';
-import { PrismaService } from '../src/prisma/prisma.service';
+import { AppModule } from '../src/app.module.js';
+import { configureApp } from '../src/configure-app.js';
+import { PrismaService } from '../src/prisma/prisma.service.js';
 
 describe('Health API', () => {
   let app: INestApplication;

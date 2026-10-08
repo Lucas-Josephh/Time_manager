@@ -34,11 +34,11 @@ Si le port PostgreSQL **5432** est déjà occupé, modifiez **`POSTGRES_PORT` et
 C'est le mode à utiliser pour travailler sur le code :
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --wait database
+pnpm dev:database
 pnpm dev
 ```
 
-La première commande démarre PostgreSQL et le rend accessible sur localhost. `pnpm dev` lance simultanément Next.js et NestJS via Turborepo, avec rechargement lors des modifications.
+La première commande démarre PostgreSQL et le rend accessible sur localhost. `pnpm dev` lance Next.js et NestJS en parallèle via pnpm, avec rechargement lors des modifications.
 
 - Frontend : http://localhost:3000
 - API de santé : http://localhost:3001/api/health
@@ -50,7 +50,7 @@ Arrêtez les applications avec **Ctrl+C**.
 Pour faire tourner frontend, backend, PostgreSQL et Nginx en conteneurs :
 
 ```bash
-docker compose up --build -d --wait
+pnpm start
 ```
 
 Accès : **http://localhost:8080**, ou le port défini par `HTTP_PORT`.
@@ -58,7 +58,7 @@ Accès : **http://localhost:8080**, ou le port défini par `HTTP_PORT`.
 Ce mode utilise les applications compilées. Relancez la commande après des changements de code pour reconstruire les images.
 
 ```bash
-docker compose down
+pnpm stop
 ```
 
 Cette commande arrête la stack et conserve les données PostgreSQL.
@@ -67,19 +67,20 @@ Pour revenir au développement local ou utiliser Prisma depuis votre machine, re
 
 ## 3. Commandes importantes
 
-| Commande                              | Utilité                                                      |
-| ------------------------------------- | ------------------------------------------------------------ |
-| `pnpm install`                        | Installer ou mettre à jour les dépendances                   |
-| `pnpm dev`                            | Lancer frontend et backend en développement                  |
-| `pnpm build`                          | Compiler les deux applications                               |
-| `pnpm test`                           | Exécuter les tests disponibles, actuellement ceux du backend |
-| `pnpm lint`                           | Vérifier le code des deux applications                       |
-| `pnpm format:check`                   | Vérifier le formatage                                        |
-| `pnpm prisma:generate`                | Régénérer Prisma Client                                      |
-| `pnpm prisma:migrate`                 | Créer/appliquer les migrations de développement              |
-| `pnpm prisma:studio`                  | Ouvrir l'interface de consultation des données               |
-| `docker compose up --build -d --wait` | Construire et démarrer la stack complète                     |
-| `docker compose down`                 | Arrêter la stack sans supprimer les données                  |
+| Commande               | Utilité                                                      |
+| ---------------------- | ------------------------------------------------------------ |
+| `pnpm install`         | Installer ou mettre à jour les dépendances                   |
+| `pnpm dev:database`    | Démarrer PostgreSQL pour le développement local              |
+| `pnpm dev`             | Lancer frontend et backend en développement                  |
+| `pnpm start`           | Construire et démarrer toute la stack Docker                 |
+| `pnpm stop`            | Arrêter la stack Docker sans supprimer les données           |
+| `pnpm build`           | Compiler les deux applications                               |
+| `pnpm test`            | Exécuter les tests disponibles, actuellement ceux du backend |
+| `pnpm lint`            | Vérifier le code des deux applications                       |
+| `pnpm format:check`    | Vérifier le formatage                                        |
+| `pnpm prisma:generate` | Régénérer Prisma Client                                      |
+| `pnpm prisma:migrate`  | Créer/appliquer les migrations de développement              |
+| `pnpm prisma:studio`   | Ouvrir l'interface de consultation des données               |
 
 ## 4. Prisma et base de données
 
@@ -98,7 +99,15 @@ pnpm prisma:generate
 
 Ajoutez au commit le schéma modifié et les migrations créées dans **`apps/backend/prisma/migrations/`**.
 
-## 5. Quand récupérer les changements des autres
+## 5. Déploiement Vercel et Neon
+
+Le backend utilise `DATABASE_URL` pour Prisma. Configurez-la dans le projet Vercel `time_manager-back` pour l'environnement **Production** (et utilisez une base de test distincte pour **Preview**). Une URL Neon poolée convient aux connexions applicatives. Ne mettez jamais cette valeur dans Git.
+
+Après le déploiement, le workflow vérifie les URL publiques : le frontend doit répondre en HTTP 200 et `/api/health` doit renvoyer `{"status":"ok"}`. Ces vérifications sont publiques et sans authentification. Le frontend garde `output: 'standalone'` pour Docker, mais le workflow utilise la sortie Next.js native sur Vercel. Le fichier `apps/frontend/vercel.json` force le preset **Next.js**. Dans le projet Vercel `time_manager-front`, vérifiez que le Root Directory est `apps/frontend` et que **Output Directory est vide**. La page d'accueil actuelle ne contient pas encore d'interface et affichera une page blanche lorsqu'elle répondra correctement.
+
+Le backend utilise des modules ES (NestJS 12). Gardez `"type": "module"` dans `apps/backend/package.json` et `module`/`moduleResolution` à `NodeNext` dans `apps/backend/tsconfig.json`; compiler en CommonJS provoque `ERR_REQUIRE_ESM` au démarrage de la Function Vercel.
+
+## 6. Quand récupérer les changements des autres
 
 Après :
 
@@ -115,7 +124,7 @@ Vérifiez les fichiers modifiés :
 
 Ne recopiez pas `.env.example` sur votre `.env` à chaque pull. Si l'exemple évolue, reportez les nouvelles variables dans votre configuration locale.
 
-## 6. Avant de push
+## 7. Avant de push
 
 ```bash
 pnpm lint
@@ -132,13 +141,13 @@ pnpm format
 
 Vérifiez les modifications et corrigez les erreurs avant de pousser.
 
-## 7. Workflow résumé
+## 8. Workflow résumé
 
 ```bash
 git pull
 pnpm install          # si les dépendances ont changé
 
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --wait database
+pnpm dev:database
 
 pnpm prisma:migrate   # si des migrations doivent être appliquées/créées
 pnpm prisma:generate  # si le schéma ou les migrations ont changé

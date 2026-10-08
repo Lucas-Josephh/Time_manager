@@ -1,0 +1,139 @@
+name: CI and Deploy
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Format, lint, coverage and build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.9.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Backend tests with coverage
+        run: pnpm --filter backend test:cov
+
+      - name: Upload backend coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: apps/backend/coverage/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Build frontend and backend
+        run: pnpm build
+
+  deploy-production:
+    name: Deploy to Vercel production
+    runs-on: ubuntu-latest
+    needs:
+      - quality
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: production
+
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.9.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Select the frontend project from the repository root. Vercel applies
+      # the project's apps/frontend root directory from its project settings.
+      - name: Configure frontend Vercel project
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_FRONT_PROJECT_ID }}
+        run: |
+          mkdir -p .vercel
+          node -e 'const fs = require("node:fs"); fs.writeFileSync(".vercel/project.json", JSON.stringify({ orgId: process.env.VERCEL_ORG_ID, projectId: process.env.VERCEL_PROJECT_ID }));'
+
+      - name: Pull frontend production settings
+        run: pnpm dlx vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Deploy frontend
+        run: pnpm dlx vercel@latest deploy --prod --yes --token="$VERCEL_TOKEN"
+
+      # Select the backend project from the repository root. Vercel applies
+      # the project's apps/backend root directory from its project settings.
+      - name: Configure backend Vercel project
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_BACK_PROJECT_ID }}
+        run: |
+          mkdir -p .vercel
+          node -e 'const fs = require("node:fs"); fs.writeFileSync(".vercel/project.json", JSON.stringify({ orgId: process.env.VERCEL_ORG_ID, projectId: process.env.VERCEL_PROJECT_ID }));'
+
+      - name: Pull backend production settings
+        run: pnpm dlx vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build backend for Vercel
+        run: pnpm dlx vercel@latest build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy backend
+        run: pnpm dlx vercel@latest deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN"
+
+      - name: Smoke test production URLs
+        run: |
+          frontend_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --retry 5 --retry-all-errors --retry-delay 2 --max-time 20 https://timemanager-front-omega.vercel.app/)"
+          if [ "$frontend_status" != "200" ]; then
+            echo "Frontend smoke test returned HTTP $frontend_status."
+            if [ "$frontend_status" = "404" ]; then
+              echo "The frontend deployment has no root route. Confirm the Vercel project uses apps/frontend as Root Directory and has no custom Output Directory."
+            fi
+            exit 1
+          fi
+
+          health_response="$(curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 2 --max-time 20 https://timemanager-back.vercel.app/api/health)"
+          if [ "$health_response" != '{"status":"ok"}' ]; then
+            echo "Backend health check returned an unexpected response."
+            echo "Check the time_manager-back Vercel deployment logs and Production Deployment Protection settings."
+            exit 1
+          fi

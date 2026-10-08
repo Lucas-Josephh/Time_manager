@@ -6,7 +6,7 @@ Developer onboarding and daily workflow: [Guide de démarrage](docs/GETTING_STAR
 
 ## Architecture
 
-A single Git repository contains independent applications in a **pnpm workspace**. **Turborepo** runs their development, build, lint, and test tasks and caches completed checks and build outputs. `packages/` is reserved for future shared configuration.
+A single Git repository contains independent applications in a **pnpm workspace**. **pnpm** runs both development servers in parallel; **Turborepo** runs build, lint, and test tasks and caches completed checks and build outputs. `packages/` is reserved for future shared configuration.
 
 ```text
 Browser → Nginx → Next.js frontend
@@ -109,17 +109,17 @@ The root `.env` is the only environment file needed. Both NestJS and the Prisma 
 Start PostgreSQL with the development override, which publishes it on **127.0.0.1 only**, then start both apps:
 
 ```sh
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --wait database
+pnpm dev:database
 pnpm dev
 ```
 
 If port 5432 is in use, change `POSTGRES_PORT` in `.env` and the port in `DATABASE_URL` together. When this repository was initialized on a host with port 5432 already occupied, its ignored local `.env` used port **54329**. The committed example keeps the conventional 5432 default.
 
-Run one application through the root Turbo script when needed:
+Run one application directly when needed:
 
 ```sh
-pnpm dev --filter=frontend
-pnpm dev --filter=backend
+pnpm --filter frontend dev
+pnpm --filter backend dev
 ```
 
 The backend generates its Prisma client before development/build and connects to PostgreSQL at startup. Start the database before running it. Prisma disconnects when NestJS closes or receives a shutdown signal.
@@ -130,6 +130,14 @@ The backend generates its Prisma client before development/build and connects to
 | http://localhost:3001/api/health | Host-run backend; returns `{"status":"ok"}` |
 | http://localhost:8080            | Docker Nginx entry point                    |
 | http://localhost:8080/api/health | Backend through Docker Nginx                |
+
+To run the complete production-style stack (PostgreSQL, backend, frontend, and Nginx) in Docker:
+
+```sh
+pnpm start
+```
+
+Open the URL on the configured `HTTP_PORT` (default: http://localhost:8080). Stop the stack with `pnpm stop`; the PostgreSQL data volume is preserved.
 
 `HTTP_PORT` changes the Nginx entry port. The frontend displays only **Time Manager**; there are no API clients or browser calls to the backend yet.
 
@@ -172,10 +180,10 @@ Prisma 7 stores `DATABASE_URL` in `prisma.config.ts`, and runtime connections us
 
 ```sh
 docker compose config --quiet
-docker compose up --build -d --wait
+pnpm start
 curl http://localhost:8080/api/health
 docker compose logs -f
-docker compose down
+pnpm stop
 ```
 
 If the development database is already running, `up` with the base file recreates it without its host port. Use the development override again when returning to `pnpm dev`.
