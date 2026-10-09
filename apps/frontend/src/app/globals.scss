@@ -68,6 +68,12 @@ p {
   }
 }
 
+.name-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
 .screen {
   width: 100%;
   min-height: 100dvh;
@@ -148,4 +154,10 @@ p {
   box-shadow:
     0 2px 4px rgba(22, 50, 79, 0.05),
     0 14px 30px -18px rgba(22, 50, 79, 0.22);
+}
+
+@media (max-width: 767px) {
+  .name-fields {
+    grid-template-columns: 1fr;
+  }
 }

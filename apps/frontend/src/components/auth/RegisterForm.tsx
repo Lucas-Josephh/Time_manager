@@ -2,11 +2,42 @@
 
 import Input from '@/components/ui/Input';
 import Button from '../ui/Button';
-import { LockOutlined, MailOutlined } from '@ant-design/icons';
+import {
+  LockOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  UserOutlined,
+} from '@ant-design/icons';
 
 export default function RegisterForm() {
   return (
     <form className="form-gap">
+      <div className="name-fields">
+        <Input
+          name="firstName"
+          label="First Name"
+          type="text"
+          placeholder="John"
+          icon={<UserOutlined />}
+          required
+        ></Input>
+        <Input
+          name="lastName"
+          label="Last Name"
+          type="text"
+          placeholder="Doe"
+          icon={<UserOutlined />}
+          required
+        ></Input>
+      </div>
+      <Input
+        name="phone"
+        label="Phone"
+        type="text"
+        placeholder="e.g. 06 12 34 56 78"
+        icon={<PhoneOutlined />}
+        required
+      ></Input>
       <Input
         name="email"
         label="Email"

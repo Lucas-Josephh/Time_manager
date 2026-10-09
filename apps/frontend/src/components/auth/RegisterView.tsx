@@ -18,21 +18,21 @@ export default function RegisterView() {
       <div className="screen screen--centered">
         <div className="auth-container">
           <AuthHeader
-            title="Create your account"
-            subtitle="Sign up to get started"
+            title="Create employee account"
+            subtitle="Enter the employee's details to create their account."
           ></AuthHeader>
           <div className="card">
             <RegisterForm />
-            <Divider>
+            {/* <Divider>
               <span className="surtitre">Or</span>
-            </Divider>
-            <Button variant="secondary" className="full-width">
+            </Divider> */}
+            {/* <Button variant="secondary" className="full-width">
               <FcGoogle size={16}/>
               Continue with Google
-            </Button>
+            </Button> */}
           </div>
           <p>
-            Already have an account ? <Link href="/login">Log in</Link>
+            <Link href="/login">Back to employees</Link>
           </p>
         </div>
       </div>
