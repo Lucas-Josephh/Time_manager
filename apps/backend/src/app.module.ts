@@ -9,7 +9,10 @@ import { PrismaModule } from './prisma/prisma.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: resolve(__dirname, '../../../.env'),
+      envFilePath: [
+        resolve(__dirname, '../.env'),
+        resolve(__dirname, '../../../.env')
+      ],
     }),
     PrismaModule,
     AuthModule,

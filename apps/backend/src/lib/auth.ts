@@ -20,6 +20,17 @@ export function createAuth(
   if (new URL(frontend).origin !== frontend)
     throw new Error('FRONTEND_URL must be an origin');
 
+  const clientId = config.get<string>('MICROSOFT_CLIENT_ID')?.trim();
+  const clientSecret = config.get<string>('MICROSOFT_CLIENT_SECRET')?.trim();
+  const tenantId = config.get<string>('MICROSOFT_TENANT_ID')?.trim();
+
+  const microsoftConfigured = Boolean(clientId || clientSecret || tenantId);
+
+  if (microsoftConfigured && (!clientId || !clientSecret || !tenantId))
+    throw new Error(
+      'Microsoft authentication requires client ID, client secret and tenant ID',
+    );
+
   const options: BetterAuthOptions & {
     plugins: [ReturnType<typeof i18n>];
   } = {
@@ -28,10 +39,29 @@ export function createAuth(
     baseURL,
     basePath: '/api/auth',
     trustedOrigins: [frontend],
-    socialProviders: {
-      microsoft: {
-        clientId: config.get<string>('MICROSOFT_CLIENT_ID')!,
-        clientSecret: config.get<string>('MICROSOFT_CLIENT_SECRET')!,
+    socialProviders: microsoftConfigured
+      ? {
+          microsoft: {
+            clientId: clientId!,
+            clientSecret: clientSecret!,
+            tenantId,
+            disableSignUp: true,
+            disableProfilePhoto: true,
+            prompt: 'select_account',
+          },
+        }
+      : {},
+    account: {
+      accountLinking: {
+        enabled: true,
+
+        // Allows to link a Microsoft account to an existing local account without requiring the user to log in first.
+        disableImplicitLinking: false,
+
+        // Administrators provision local users; Microsoft authenticates their matching email.
+        requireLocalEmailVerified: false,
+        trustedProviders: ['microsoft'],
+        allowDifferentEmails: false,
       },
     },
     emailAndPassword: {
