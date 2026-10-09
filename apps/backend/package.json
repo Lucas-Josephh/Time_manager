@@ -11,7 +11,8 @@
     "test:cov": "prisma generate && node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage --runInBand",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "user:create": "ts-node src/commands/create-user.ts"
   },
   "dependencies": {
     "@better-auth/prisma-adapter": "1.7.7",
