@@ -13,7 +13,9 @@
     "test": "turbo run test",
     "prisma:generate": "pnpm --filter backend prisma:generate",
     "prisma:migrate": "pnpm --filter backend prisma:migrate",
+    "prisma:db:seed": "pnpm --filter backend exec prisma db seed",
     "prisma:studio": "pnpm --filter backend prisma:studio",
+    "prisma:db:push": "pnpm --filter backend exec prisma migrate deploy",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test:cov": "turbo run test:cov"
@@ -23,6 +25,7 @@
     "turbo": "2.11.7"
   },
   "dependencies": {
-    "antd": "^6.6.5"
+    "antd": "^6.6.5",
+    "@better-auth/i18n": "^1.7.7"
   }
 }

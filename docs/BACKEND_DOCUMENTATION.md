@@ -1,23 +1,252 @@
-# Backend API Documentation
+# Documentation du backend
 
-## Database Schema
+Le backend utilise NestJS, Prisma et PostgreSQL. Better Auth gère
+l'authentification avec des sessions stockées en base et des cookies HTTP.
+NestJS écoute sur le port **3001** les routes sont préfixées par `/api`.
 
-Démarrer la commande `pnpm prisma:studio` pour visualiser et interagir avec la base de données via une interface web.
+## Démarrage et configuration
 
-## Liste des routes
+Depuis la racine du projet :
 
-### 1. Authentification
+```bash
+pnpm install
+pnpm prisma:generate
+pnpm --filter backend exec prisma migrate deploy
+pnpm dev
+```
 
-- `POST /api/auth/login` : Authentifie un utilisateur et retourne un token JWT.
-- `POST /api/auth/logout` : Déconnecte l'utilisateur en invalidant le token JWT.
-- `POST /api/auth/refresh` : Rafraîchit le token JWT si l'utilisateur est authentifié.
-- `GET /api/auth/me` : Récupère les informations de l'utilisateur actuellement authentifié.
-- `POST /api/auth/forgot-password` : Envoie un email de réinitialisation de mot de passe à l'utilisateur.
-- `POST /api/auth/reset-password` : Réinitialise le mot de passe de l'utilisateur à l'aide du token de réinitialisation.
+PostgreSQL doit être accessible via `DATABASE_URL`. `pnpm dev` lance les
+applications du monorepo pour lancer seulement le backend :
+`pnpm --filter backend dev`.
 
-### 2. Utilisateurs
+### Chargement des variables
 
 - `GET /api/users` : Récupère la liste de tous les utilisateurs (avec pagination et filtres).
 - `GET /api/users/:id` : Récupère les informations d'un utilisateur spécifique par son ID.
 - `PUT /api/users/:id` : Met à jour les informations d'un utilisateur spécifique
 - `DELETE /api/users/:id` : Supprime un utilisateur spécifique par son ID.
+Le serveur NestJS charge, dans cet ordre :
+
+1. `apps/backend/.env`
+2. le `.env` à la racine du projet.
+
+Pour une variable présente dans les deux fichiers, `apps/backend/.env` est
+prioritaire. Les variables déjà définies dans le processus restent prioritaires
+sur les fichiers. La commande `user:create` utilise le même ordre. Les commandes
+Prisma et le seeder chargent uniquement le `.env` racine via `prisma.config.ts`.
+Centraliser les valeurs dans le `.env` racine et éviter les doublons permet de
+conserver une configuration cohérente entre ces commandes et le serveur.
+
+| Variable                                   | Utilisation                                                                                                        |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `DATABASE_URL`                             | Connexion PostgreSQL utilisée par Prisma                                                                           |
+| `BETTER_AUTH_SECRET`                       | Secret d'au moins 32 caractères conserver sa valeur pour maintenir la validité des cookies                         |
+| `BETTER_AUTH_URL`                          | URL publique du backend utilisée notamment pour le retour OAuth                                                    |
+| `FRONTEND_URL`                             | Origine exacte du frontend, sans chemin ni slash final utilisée pour CORS et les origines de confiance Better Auth |
+| `MICROSOFT_CLIENT_ID`                      | ID de l'application Microsoft Entra                                                                                |
+| `MICROSOFT_CLIENT_SECRET`                  | Valeur du secret client Microsoft Entra                                                                            |
+| `MICROSOFT_TENANT_ID`                      | GUID du tenant de l'organisation                                                                                   |
+| `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | Identifiants du compte initial créé par le seeder                                                                  |
+
+Les trois variables Microsoft peuvent être vides pour désactiver le fournisseur.
+Une configuration partielle empêche le démarrage. Le tenant doit être un GUID
+précis `common`, `organizations` et `consumers` ne sont pas acceptés.
+
+### Ports et URL
+
+| Mode                          | Frontend (`FRONTEND_URL`) | Backend public (`BETTER_AUTH_URL`) | URI de redirection Entra, plateforme Web            |
+| ----------------------------- | ------------------------- | ---------------------------------- | --------------------------------------------------- |
+| `pnpm dev`                    | `http://localhost:3000`   | `http://localhost:3001`            | `http://localhost:3001/api/auth/callback/microsoft` |
+| Docker/Nginx, port par défaut | `http://localhost:8080`   | `http://localhost:8080`            | `http://localhost:8080/api/auth/callback/microsoft` |
+
+En développement, Next.js relaie `/api/auth/*` vers le backend. Avec Docker,
+Nginx relaie les requêtes API adapter les URL au port `HTTP_PORT` configuré.
+Docker Compose transmet les variables d'authentification au backend et construit
+sa connexion PostgreSQL depuis les variables `POSTGRES_*`.
+Redémarrer le backend après une modification de sa configuration.
+
+## Base de données
+
+Le schéma se trouve dans `apps/backend/prisma/schema.prisma`.
+
+| Table          | Rôle                                                                  |
+| -------------- | --------------------------------------------------------------------- |
+| `department`   | Départements et leurs équipes                                         |
+| `team`         | Équipes, département, responsable et membres                          |
+| `user`         | Profil utilisateur, email unique, rôle administrateur et équipe       |
+| `account`      | Identifiants locaux ou association Microsoft mot de passe local haché |
+| `session`      | Sessions, expiration, token, adresse IP et agent utilisateur          |
+| `verification` | Données temporaires de vérification utilisées par Better Auth         |
+
+L'historique contient actuellement la migration `20261007112352_init`.
+Appliquer les migrations existantes avec
+`pnpm --filter backend exec prisma migrate deploy`. Pour créer une migration
+pendant le développement, utiliser `pnpm prisma:migrate`.
+`pnpm prisma:studio` ouvre l'interface de consultation et modification des données.
+
+## Création des utilisateurs
+
+L'inscription publique est désactivée, y compris via Microsoft. L'utilisateur
+Time Manager doit exister avant sa première connexion.
+
+### Utilisateur pour Microsoft 365
+
+```bash
+pnpm --filter backend user:create \
+  --email alice@entreprise.fr \
+  --firstname Alice \
+  --lastname Dupont
+```
+
+Cette commande crée uniquement le profil local, sans mot de passe ni compte
+Microsoft associé. Elle normalise l'email en minuscules et refuse les doublons.
+L'utilisateur est créé avec `isAdmin: false` et `emailVerified: false`.
+Il pourra se connecter avec Microsoft si l'email renvoyé correspond à ce profil.
+
+### Compte initial avec mot de passe
+
+Définir `SEED_ADMIN_EMAIL` et `SEED_ADMIN_PASSWORD` dans le `.env` racine, puis :
+
+```bash
+pnpm prisma:db:seed
+```
+
+Le seeder crée ou retrouve le compte par email, crée ses identifiants locaux
+s'ils sont absents et initialise cinq départements. Un nouvel utilisateur est
+créé comme administrateur avec un email vérifié. Pour un utilisateur existant,
+le profil et le rôle sont conservés un mot de passe existant n'est pas remplacé.
+Utiliser un email en minuscules, le seeder ne le normalisant pas.
+
+## Routes disponibles
+
+### Santé et Swagger
+
+| Route                | Réponse ou contenu                                                 |
+| -------------------- | ------------------------------------------------------------------ |
+| `GET /api/health`    | `{ "status": "ok" }` public, ne vérifie pas la connexion à la base |
+| `GET /api/docs`      | Interface Swagger des contrôleurs NestJS                           |
+| `GET /api/docs-json` | Document OpenAPI JSON                                              |
+| `GET /api/docs-yaml` | Document OpenAPI YAML                                              |
+
+Swagger documente les contrôleurs NestJS uniquement. Le handler Better Auth,
+monté sous `/api/auth`, n'est pas inclus dans ce document.
+
+### Authentification Better Auth
+
+Les principales routes utilisées par le frontend sont :
+
+| Route                              | Utilisation                                                                                 |
+| ---------------------------------- | ------------------------------------------------------------------------------------------- |
+| `POST /api/auth/sign-in/email`     | JSON `{ "email": "…", "password": "…" }` connexion et cookie de session                     |
+| `POST /api/auth/sign-in/social`    | Démarre la connexion Microsoft et renvoie l'URL d'autorisation avec `disableRedirect: true` |
+| `GET /api/auth/callback/microsoft` | Retour OAuth traité par Better Auth après la connexion chez Microsoft                       |
+| `GET /api/auth/get-session`        | Retourne `{ session, user }`, ou `null` sans session valide                                 |
+| `POST /api/auth/sign-out`          | Révoque la session et efface les cookies                                                    |
+| `GET /api/auth/ok`                 | Vérifie la disponibilité du handler                                                         |
+
+Exemple de corps pour démarrer Microsoft en développement :
+
+```json
+{
+  "provider": "microsoft",
+  "callbackURL": "http://localhost:3000",
+  "errorCallbackURL": "http://localhost:3000/?error=microsoft",
+  "disableRedirect": true
+}
+```
+
+`callbackURL` est l'adresse du frontend après la connexion. L'URI de redirection
+Entra est l'adresse du callback **backend**, construite depuis `BETTER_AUTH_URL`.
+Le frontend utilise le client React Better Auth, défini dans
+`apps/frontend/src/lib/auth-client.ts`. Les méthodes `signIn.email`,
+`signIn.social` et `signOut` gèrent les connexions et la déconnexion. Le hook
+`useSession` lit et synchronise la session ; le client gère les cookies et
+la redirection vers Microsoft. Les requêtes ciblent `/api/auth` sur la même
+origine, via Next.js en développement ou Nginx avec Docker.
+
+Les anciennes routes personnalisées `/login`, `/logout`, `/refresh` et `/me`
+ne sont pas exposées. Le plugin JWT est absent : `/api/auth/token` et
+`/api/auth/jwks` ne sont pas exposés. L'envoi d'emails n'est pas configuré.
+
+### Association Microsoft
+
+Le fournisseur Microsoft utilise le tenant configuré et refuse la création de
+nouveaux utilisateurs. Lors de la première connexion, Better Auth associe
+Microsoft à l'utilisateur existant ayant le même email :
+
+- `enabled: true` active l'association de comptes
+- `disableImplicitLinking: false` autorise l'association automatique
+- `trustedProviders: ['microsoft']` désigne Microsoft comme fournisseur de confiance
+- `requireLocalEmailVerified: false` permet l'association à un profil local dont l'email n'a pas été vérifié
+- `allowDifferentEmails: false` impose des emails identiques.
+
+L'utilisateur n'a pas besoin d'un mot de passe local pour cette association.
+Son rôle et ses informations métier sont conservés. Les connexions suivantes
+réutilisent le compte associé. La récupération de la photo Microsoft est désactivée.
+Voir le [guide Microsoft 365](MICROSOFT_AUTH.md) pour la configuration Entra.
+
+### Sessions et protection des routes
+
+Les sessions durent sept jours et sont renouvelées après un jour d'activité.
+Le cache de session dans les cookies est désactivé. Le cookie est HttpOnly,
+SameSite=Lax et Secure lorsque `BETTER_AUTH_URL` utilise HTTPS.
+Les contrôles d'origine et CSRF sont activés, ainsi que la limitation des requêtes.
+CORS autorise `FRONTEND_URL` avec credentials. Better Auth utilise cette origine
+comme origine de confiance, en plus de son URL de base.
+
+Better Auth expose `user.name`, stocké dans `firstname`, ainsi que `lastname`,
+`phone`, `teamId` et `isAdmin`. `teamId` et `isAdmin` ne sont pas modifiables via
+les entrées utilisateur Better Auth.
+
+`AuthModule` exporte `AuthGuard` pour protéger les contrôleurs avec
+`@UseGuards(AuthGuard)`. Le guard vérifie la session depuis les en-têtes de la
+requête, renvoie une erreur 401 si elle est invalide et ajoute les données à
+`request.session`. Il ne vérifie pas le rôle administrateur.
+
+### Routes métier prévues
+
+Aucun contrôleur utilisateurs, équipes ou départements n'est actuellement
+implémenté. Les routes `/api/users` et `/api/users/:id` ne sont donc pas disponibles,
+malgré l'existence des modèles Prisma correspondants.
+
+## Exemples avec cookies
+
+Pour un backend lancé directement, avec `FRONTEND_URL=http://localhost:3000` :
+
+```bash
+curl -c cookies.txt http://localhost:3001/api/auth/sign-in/email \
+  -H 'Content-Type: application/json' \
+  -H 'Origin: http://localhost:3000' \
+  -d '{"email":"admin@example.com","password":"mot-de-passe-du-seeder"}'
+
+curl -b cookies.txt -c cookies.txt http://localhost:3001/api/auth/get-session
+
+curl -b cookies.txt -c cookies.txt -X POST \
+  -H 'Origin: http://localhost:3000' \
+  http://localhost:3001/api/auth/sign-out
+```
+
+Pour Docker/Nginx, remplacer les origines et URL par `http://localhost:8080`
+(ou le port public configuré).
+
+## Dépannage
+
+- **`INVALID_CALLBACK_URL`** : l'origine de `callbackURL` doit être autorisée. Vérifier que `FRONTEND_URL` correspond
+  exactement à l'adresse ouverte dans le navigateur, puis redémarrer le backend.
+- **`AADSTS500113`** : ajouter l'URI de redirection backend dans l'application Entra, sous **Authentification →
+  plateforme Web**. En développement : `http://localhost:3001/api/auth/callback/microsoft`.
+- **Connexion Microsoft refusée après authentification** : vérifier le tenant et l'existence d'un utilisateur local dont
+  l'email correspond à celui renvoyé par Microsoft.
+- **Configuration différente entre Prisma et NestJS** : vérifier les doublons entre `apps/backend/.env`, le `.env`
+  racine et les variables du processus.
+
+## Vérification
+
+```bash
+pnpm --filter backend test
+```
+
+Les tests couvrent la santé de l'API, les sessions cookies, les contrôles d'origine,
+la limitation des requêtes, la déconnexion et le parcours Microsoft avec une base
+en mémoire. Les réponses externes de Microsoft sont simulées une connexion
+avec un vrai tenant reste nécessaire pour valider la configuration Entra.

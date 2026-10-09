@@ -13,9 +13,9 @@ CREATE TABLE "team" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "departmentId" TEXT NOT NULL,
-    "managerId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "managerId" TEXT,
 
     CONSTRAINT "team_pkey" PRIMARY KEY ("id")
 );
@@ -27,6 +27,7 @@ CREATE TABLE "user" (
     "lastname" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "phone" TEXT,
+    "isAdmin" BOOLEAN NOT NULL DEFAULT false,
     "emailVerified" BOOLEAN NOT NULL DEFAULT false,
     "image" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -85,19 +86,13 @@ CREATE TABLE "verification" (
 CREATE INDEX "team_departmentId_idx" ON "team"("departmentId");
 
 -- CreateIndex
-CREATE INDEX "team_managerId_idx" ON "team"("managerId");
-
--- CreateIndex
 CREATE UNIQUE INDEX "user_email_key" ON "user"("email");
 
 -- CreateIndex
-CREATE INDEX "user_teamId_idx" ON "user"("teamId");
+CREATE INDEX "session_userId_idx" ON "session"("userId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "session_token_key" ON "session"("token");
-
--- CreateIndex
-CREATE INDEX "session_userId_idx" ON "session"("userId");
 
 -- CreateIndex
 CREATE INDEX "account_userId_idx" ON "account"("userId");

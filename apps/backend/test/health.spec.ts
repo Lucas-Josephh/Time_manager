@@ -32,4 +32,32 @@ describe('Health API', () => {
   it('does not expose an unprefixed health route', async () => {
     await request(app.getHttpServer()).get('/health').expect(404);
   });
+
+  it('serves Swagger UI and its assets under the API prefix', async () => {
+    await request(app.getHttpServer())
+      .get('/api/docs/')
+      .expect(200)
+      .expect('Content-Type', /html/);
+    await request(app.getHttpServer())
+      .get('/api/docs/swagger-ui-bundle.js')
+      .expect(200)
+      .expect('Content-Type', /javascript/);
+  });
+
+  it('documents the prefixed health route and its response', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/api/docs-json')
+      .expect(200);
+    expect(response.body.info.title).toBe('Time Manager API');
+    expect(Object.keys(response.body.paths)).toEqual(['/api/health']);
+    expect(
+      response.body.paths['/api/health'].get.responses['200'].content[
+        'application/json'
+      ].schema,
+    ).toEqual({
+      type: 'object',
+      required: ['status'],
+      properties: { status: { type: 'string', enum: ['ok'], example: 'ok' } },
+    });
+  });
 });

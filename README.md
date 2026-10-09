@@ -133,6 +133,12 @@ The backend generates its Prisma client before development/build and connects to
 
 `HTTP_PORT` changes the Nginx entry port. The frontend displays only **Time Manager**; there are no API clients or browser calls to the backend yet.
 
+## API documentation
+
+Swagger UI is available at http://localhost:3001/api/docs when running the backend locally, or http://localhost:8080/api/docs through Docker Nginx. It lets you inspect and test the documented endpoints. The OpenAPI specification is also available at `/api/docs-json` (JSON) and `/api/docs-yaml` (YAML).
+
+Documentation is generated from NestJS controllers using `@nestjs/swagger`. The current API exposes `GET /api/health`, with its response schema and example documented. When adding routes, use `@ApiTags()`, `@ApiOperation()`, and response decorators such as `@ApiOkResponse()`; document DTO fields with `@ApiProperty()` and parameters with `@ApiParam()` or `@ApiQuery()` as needed. See the [NestJS OpenAPI documentation](https://docs.nestjs.com/openapi/introduction).
+
 ## Build and checks
 
 ```sh
