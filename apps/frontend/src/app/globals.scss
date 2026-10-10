@@ -68,10 +68,22 @@ p {
   }
 }
 
+.name-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
 .name-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+  align-items: start;
+}
+
+.name-fields > .input-field {
+  margin-bottom: 0;
 }
 
 .screen {
@@ -91,6 +103,10 @@ p {
   position: relative;
 }
 
+.input-required {
+  color: var(--color-danger);
+}
+
 .input-icon {
   position: absolute;
   left: 12px;
@@ -103,6 +119,21 @@ p {
   svg {
     width: 15px;
     height: 15px;
+  }
+}
+
+.input-error {
+  display: flex;
+  color: red;
+  gap: 5px;
+  // background-color: #3b7dd8;
+  
+  p{
+    font-size: x-small;
+    color: red;
+    margin: 0;
+    padding: 0;
+    // background-color: #27ae81;
   }
 }
 
@@ -128,7 +159,7 @@ p {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .full-width {

@@ -15,27 +15,29 @@ export default function RegisterView() {
         },
       }}
     >
-      <div className="screen screen--centered">
-        <div className="auth-container">
-          <AuthHeader
-            title="Create employee account"
-            subtitle="Enter the employee's details to create their account."
-          ></AuthHeader>
-          <div className="card">
-            <RegisterForm />
-            {/* <Divider>
+      <main>
+        <div className="screen screen--centered">
+          <div className="auth-container">
+            <AuthHeader
+              title="Create employee account"
+              subtitle="Enter the employee's details to create their account."
+            ></AuthHeader>
+            <div className="card">
+              <RegisterForm />
+              {/* <Divider>
               <span className="surtitre">Or</span>
             </Divider> */}
-            {/* <Button variant="secondary" className="full-width">
+              {/* <Button variant="secondary" className="full-width">
               <FcGoogle size={16}/>
               Continue with Google
             </Button> */}
+            </div>
+            <p>
+              <Link href="/login">Back to employees</Link>
+            </p>
           </div>
-          <p>
-            <Link href="/login">Back to employees</Link>
-          </p>
         </div>
-      </div>
+      </main>
     </ConfigProvider>
   );
 }
